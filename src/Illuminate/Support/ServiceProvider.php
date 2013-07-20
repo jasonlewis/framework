@@ -178,6 +178,60 @@ abstract class ServiceProvider {
 		});
 	}
 
+	
+	/**
+	 * Register the classes to be included during "artisan optimize".
+	 * 
+	 * @param  array  $classes
+	 * @return void
+	 */
+	public function compile($classes)
+	{
+		$classes = is_array($classes) ? $classes : func_get_args();
+
+		// The classes will only be registered to be included in the compiled file when
+		// the Artisan start event is fired. This way we're not gathering the paths
+		// on every request for no reason.
+		$app = $this->app;
+
+		$app['events']->listen('artisan.start', function($artisan) use ($app, $classes)
+		{
+			$compile = array();
+
+			if (in_array('*', $classes))
+			{
+				unset($classes[array_search('*', $classes)]);
+
+				// Using reflection we'll get the base directory of our service provider
+				// and use that as the starting point of including all the classes
+				// within our package.
+				$reflection = new ReflectionClass($this);
+
+				$path = dirname($reflection->getFileName());
+
+				foreach ($app['files']->allFiles($path) as $class)
+				{
+					if (ends_with($class->getFilename(), '.php'))
+					{
+						$compile[] = $class->getPathname();
+					}
+				}
+			}
+
+			// We'll now spin through the rest of the classes in the array and using
+			// reflection we'll get the path to the class and add it to the array
+			// of paths to include upon optimizing.
+			foreach ($classes as $class)
+			{
+				$compile[] = with(new ReflectionClass($class))->getFileName();
+			}
+
+			$compile = array_merge($app['config']->get('compile', array()), $compile);
+			
+			$app['config']->set('compile', $compile);
+		});
+	}
+
 	/**
 	 * Get the application package view path.
 	 *
