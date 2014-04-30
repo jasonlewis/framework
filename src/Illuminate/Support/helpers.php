@@ -213,11 +213,11 @@ if ( ! function_exists('array_first'))
 	 * @param  mixed    $default
 	 * @return mixed
 	 */
-	function array_first($array, $callback, $default = null)
+	function array_first($array, $callback = null, $default = null)
 	{
 		foreach ($array as $key => $value)
 		{
-			if (call_user_func($callback, $key, $value)) return $value;
+			if (call_user_func($callback ?: function() { return true; }, $key, $value)) return $value;
 		}
 
 		return value($default);
@@ -234,7 +234,7 @@ if ( ! function_exists('array_last'))
 	 * @param  mixed    $default
 	 * @return mixed
 	 */
-	function array_last($array, $callback, $default = null)
+	function array_last($array, $callback = null, $default = null)
 	{
 		return array_first(array_reverse($array), $callback, $default);
 	}
